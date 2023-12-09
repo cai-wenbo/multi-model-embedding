@@ -14,7 +14,7 @@ we would load the preprocessed text, encoding them into integers and then
 extract the (context, target) pairs. Feed the context to the model and 
 calculate the loss with the target.
 
-And yes, we can load all data into the memory
+And yes, I can load all data into the memory
 '''
 
 
@@ -47,15 +47,15 @@ def train_FNN(training_config):
     '''
     loss 
     '''
-    criterion = nn.BCELoss().to(device)
+    criterion = nn.BCELoss(reduction='sum').to(device)
 
 
 
     '''
     dataloader
     '''
-    dataset_train = FNNDataset(db_path = 'data/BBCnews_processed.db', query = 'SELECT text FROM text_train', encoding_path = 'data/encoding_table.csv', window_width = 2, vocab_size= training_config['vocab_size'])
-    dataset_eval  = FNNDataset(db_path = 'data/BBCnews_processed.db', query = 'SELECT text FROM text_eval', encoding_path  = 'data/encoding_table.csv', window_width = 2, vocab_size= training_config['vocab_size'])
+    dataset_train = FNNDataset(db_path = 'data/BBCnews_processed.db', query = 'SELECT text FROM text_train', encoding_path = 'data/encoding_table.csv', window_width = training_config['window_width'], vocab_size= training_config['vocab_size'])
+    dataset_eval  = FNNDataset(db_path = 'data/BBCnews_processed.db', query = 'SELECT text FROM text_eval', encoding_path  = 'data/encoding_table.csv', window_width = training_config['window_width'], vocab_size= training_config['vocab_size'])
 
     dataloader_train = DataLoader(dataset_train, batch_size = training_config['batch_size'], shuffle = True)
     dataloader_eval  = DataLoader(dataset_eval, batch_size  = training_config['batch_size'], shuffle = True)
@@ -102,9 +102,10 @@ if __name__ == "__main__":
     training_config = dict()
     training_config['vocab_size']           = 6957
     training_config['embedding_dim']        = 32
+    training_config['window_width']         = 2
     training_config['init_method']          = 'uniform'
     training_config['negative_sample_size'] = 4
-    training_config['num_of_epochs']        = 20
+    training_config['num_of_epochs']        = 4
     training_config['batch_size']           = 20
     training_config['model_path_dst']       = 'saved_embedding.pth'
     training_config['learning_rate']        = 1e-4
