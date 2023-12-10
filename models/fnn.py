@@ -61,3 +61,13 @@ class FNN_LM(nn.Module):
         probs = self.softmax(scores)
 
         return probs
+
+
+
+    def get_cross_scores(self, src_tensor, trgs_tensor):
+        embedded_src = self.embedding(src_tensor)
+        embedded_targets = self.embedding(trgs_tensor)
+
+        scores = torch.matmul(embedded_src.unsqueeze(1), embedded_targets.transpose(-2,-1)).squeeze(dim=1)
+        return scores
+
