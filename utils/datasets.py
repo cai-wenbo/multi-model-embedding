@@ -120,3 +120,70 @@ class FNNDataset(Dataset):
 
 
 
+
+
+'''
+read the proprocessed text from a sqlite db
+read the encoding table from csv text 
+generate the encoded text sequence, and pad
+to a fixed length
+
+here, we use vocab_size as the leading token
+and vocab_size  as the  trailing token
+'''
+class RNNDataset(Dataset):
+    def __init__(self, db_path, query, encoding_path, vocab_size):
+        #  get the text
+        connection = sqlite3.connect(db_path)
+        cursor = connection.cursor()
+        cursor.execute(query)
+        text_list = cursor.fetchall()
+
+        #  get the encoding dict
+        idx2word, word2idx = read_encoding_table(encoding_path) 
+
+        encoder = Encoder(word2idx)
+
+        encoded_text_list = list()
+
+        max_length = 0
+        self.leading_code = vocab_size
+        self.trailing_code = vocab_size + 1
+        self.vocab_size = vocab_size
+        #  get the context and  targets
+        for text in text_list:
+            #  encoding
+            encoded_words = [self.leading_code] + encoder(text[0]) + [self.trailing_code]
+
+            current_len = len(encoded_words)
+            if current_len > max_length:
+                max_length = current_len
+
+            encoded_text_list.append(encoded_words)
+
+        padded_encoded_words_list = list()
+        #  padding, make all the data of the same length
+        for encoded_text in encoded_text_list:
+            encoded_text = encoded_text + [0] * (max_length - len(encoded_text))
+            padded_encoded_words_list.append(encoded_text)
+           
+
+        self.padded_encoded_words_list = padded_encoded_words_list
+
+
+
+    def __len__(self):
+        return len(self.padded_encoded_words_list)
+    
+
+    def __getitem__(self, idx):
+        encoded_words = self.padded_encoded_words_list[idx]
+        targets = encoded_words[1:] + [self.trailing_code]
+
+        #  text_tensor shape (max_length)
+        text_tensor = torch.tensor(encoded_words, dtype=torch.int32)
+        #  targets_tensor = torch.tensor(targets, dtype=torch.int32)
+        targets_tensor = torch.tensor(F.one_hot(torch.tensor(targets), num_classes=self.vocab_size + 2), dtype=torch.float32)
+
+        
+        return text_tensor, targets_tensor
