@@ -121,6 +121,11 @@ class FNNDataset(Dataset):
 
 
 
+def cut_list(input_list, chunk_size, lower_bound):
+    chunks = [input_list[i:i + chunk_size] for i in range(0, len(input_list), chunk_size)]
+    return [chunk for chunk in chunks if len(chunk) > lower_bound]
+
+
 
 '''
 read the proprocessed text from a sqlite db
@@ -146,25 +151,52 @@ class RNNDataset(Dataset):
 
         encoded_text_list = list()
 
-        max_length = 0
+
+        #  max_length = 0
         self.leading_code = vocab_size
         self.trailing_code = vocab_size + 1
         self.vocab_size = vocab_size
-        #  get the context and  targets
+        
+        '''
+        whoops! a big problem here
+        the longest sequence is above 1000 while
+        most of the sequence length below 300
+        and this would cause a huge waste on predicting 
+        the trailing token and make the training 
+        time greatly longer
+
+        So I decide do a clip and cut the long 
+        test into several sequences and drop out 
+        some text that is too short
+
+        Doing this would introduce some noise, but it's fine
+        '''
+
+        selected_number = 0
+        upper_bound = 128
+        lower_bound = 16
+
         for text in text_list:
             #  encoding
             encoded_words = [self.leading_code] + encoder(text[0]) + [self.trailing_code]
 
             current_len = len(encoded_words)
-            if current_len > max_length:
-                max_length = current_len
+
+            if current_len > lower_bound:
+                if current_len > upper_bound:
+                    encoded_text_list = encoded_text_list + cut_list(encoded_words, upper_bound, upper_bound / 2) 
+                else:
+                    encoded_text_list.append(encoded_text_list)
 
             encoded_text_list.append(encoded_words)
 
+
+
+        print(len(encoded_text_list))
         padded_encoded_words_list = list()
         #  padding, make all the data of the same length
         for encoded_text in encoded_text_list:
-            encoded_text = encoded_text + [0] * (max_length - len(encoded_text))
+            encoded_text = encoded_text + [0] * (upper_bound - len(encoded_text))
             padded_encoded_words_list.append(encoded_text)
            
 
