@@ -186,17 +186,15 @@ class RNNDataset(Dataset):
                 if current_len > upper_bound:
                     encoded_text_list = encoded_text_list + cut_list(encoded_words, upper_bound, upper_bound / 2) 
                 else:
-                    encoded_text_list.append(encoded_text_list)
-
-            encoded_text_list.append(encoded_words)
+                    encoded_text_list.append(encoded_words)
 
 
 
-        print(len(encoded_text_list))
+        
         padded_encoded_words_list = list()
         #  padding, make all the data of the same length
         for encoded_text in encoded_text_list:
-            encoded_text = encoded_text + [0] * (upper_bound - len(encoded_text))
+            encoded_text = encoded_text + [self.trailing_code] * (upper_bound - len(encoded_text))
             padded_encoded_words_list.append(encoded_text)
            
 
@@ -210,6 +208,7 @@ class RNNDataset(Dataset):
 
     def __getitem__(self, idx):
         encoded_words = self.padded_encoded_words_list[idx]
+
         targets = encoded_words[1:] + [self.trailing_code]
 
         #  text_tensor shape (max_length)
